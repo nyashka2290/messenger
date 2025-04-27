@@ -2,6 +2,7 @@
 
 Server::Server(boost::asio::io_context& io_context, short port)
         : acceptor_(io_context, tcp::endpoint(tcp::v4(), port)) {
+    Session::set_users(users);
     do_accept();
 }
 
@@ -11,8 +12,10 @@ void Server::do_accept() {
                 if (!ec) {
                     std::cout << "Client connected!" << std::endl;
                     auto session = std::make_shared<Session>(std::move(socket));
-                    User user = session->initialize();
-                    add_session_with_user(session, user);
+                    session->initialize([this, session](User user) {
+                        add_session_with_user(session, user);
+                        session->start();
+                    });
                 } else {
                     std::cerr << "Accept error: " << ec.message() << std::endl;
                 }
@@ -20,10 +23,11 @@ void Server::do_accept() {
             });
 }
 
-void Server::add_session_with_user(std::shared_ptr<Session>& session, User& user) {
+void Server::add_session_with_user(std::shared_ptr<Session> session, User& user) {
     if (users.find(user.get_name()) == users.end()) {
-        user.add_session(session);
-        users.insert({user.get_name(), std::make_shared<User>(user)});
+        auto new_user = std::make_shared<User>(user);
+        new_user->add_session(session);
+        users.insert({user.get_name(), new_user});
     } else {
         users[user.get_name()]->add_session(session);
     }
