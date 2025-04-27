@@ -1,0 +1,21 @@
+#include "Server.h"
+#include <iostream>
+#include "Session.h"
+
+Server::Server(boost::asio::io_context& io_context, short port)
+        : acceptor_(io_context, tcp::endpoint(tcp::v4(), port)) {
+    do_accept();
+}
+
+void Server::do_accept() {
+    acceptor_.async_accept(
+            [this](boost::system::error_code ec, tcp::socket socket) {
+                if (!ec) {
+                    std::cout << "Client connected!" << std::endl;
+                    std::make_shared<Session>(std::move(socket))->start();
+                } else {
+                    std::cerr << "Accept error: " << ec.message() << std::endl;
+                }
+                do_accept();
+            });
+}
