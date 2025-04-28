@@ -22,13 +22,13 @@ void Session::initialize(const std::function<void(User)>& callback) {
                     if (name[name.size() - 1] == '\n') {
                         name.pop_back();
                     }
-                    std::cout << "his info:\n name: " << name << std::endl;
+                    std::clog << "his info:\n name: " << name << std::endl;
                     User temp_user;
                     temp_user.update_name(name);
                     callback(temp_user);
                     do_write("Welcome, " + name + "\n");
                 } else if (ec == boost::asio::error::eof || ec == boost::asio::error::connection_reset) {
-                    std::cout << "Client disconnected gracefully" << std::endl;
+                    std::clog << "Client disconnected gracefully" << std::endl;
                 } else {
                     std::cerr << "Read error: " << ec.message() << std::endl;
                 }
@@ -43,23 +43,26 @@ void Session::do_read() {
                 if (!ec) {
                     data_[length] = '\0';
                     std::string message(data_, length);
-                    if (user_) {
-                        std::cout << "Message received:\n from: " << user_->get_name() << "\n what: " << message << std::endl;
-                    } else {
-                        std::cout << "Message received from unknown user: " << message << std::endl;
-                    }
                     if (message[message.size() - 1] == '\n') {
                         message.pop_back();
                     }
+                    // парсим сообщение
                     std::istringstream iss(message);
                     std::string command;
                     std::cout << "Raw message: '" << message << "'" << std::endl;
                     iss >> command;
-                    //std::cout << "command: '" << command << "'" << std::endl;
+                    // обрабатка команд
                     if (command == "/msg") {
                         std::string target_nick, target_message;
                         iss >> target_nick;
                         std::getline(iss, target_message);
+                        // логируем
+                        if (user_) {
+                            std::clog << "Message received:\n from: " << user_->get_name() << "\n to: " << target_nick << "\nwhat: " << target_message << std::endl;
+                        } else {
+                            std::clog << "Message received:\n from: " << "unknown user " << "\n to: " << target_nick << "\nwhat: " << target_message << std::endl;
+                        }
+
                         if (!target_nick.empty() && !target_message.empty()) {
                             auto target_user = users->find(target_nick);
                             if (target_user != users->end()) {
@@ -76,10 +79,17 @@ void Session::do_read() {
                             do_write("Invalid /msg command. Usage: /msg <nick> <message>\n");
                         }
                     } else {
+                        // логируем
+                        if (user_) {
+                            std::clog << "Message received:\n from: " << user_->get_name() << "\n what: " << message << std::endl;
+                        } else {
+                            std::clog << "Message received from unknown user: " << message << std::endl;
+                        }
+
                         do_write("Message received: " + message + "\n");
                     }
                 } else if (ec == boost::asio::error::eof || ec == boost::asio::error::connection_reset) {
-                    std::cout << "Client disconnected gracefully" << std::endl;
+                    std::clog << "Client disconnected gracefully" << std::endl;
                 } else {
                     std::cerr << "Read error: " << ec.message() << std::endl;
                 }

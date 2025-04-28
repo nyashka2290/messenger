@@ -8,7 +8,6 @@ find_package(Boost 1.86.0 REQUIRED COMPONENTS system)
 
 add_executable(messenger
         client.cpp
-        user.h user.cpp
         additional_settings.h)
 
 target_include_directories(messenger PRIVATE ${Boost_INCLUDE_DIRS})

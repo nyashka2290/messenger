@@ -13,16 +13,22 @@ boost::asio::posix::stream_descriptor input(io_context, ::dup(STDIN_FILENO));
 boost::asio::streambuf server_buffer;
 boost::asio::streambuf console_buffer;
 std::deque<std::string> write_msgs; // Очередь для отправки сообщений
+
 std::string name;
 
 void async_write_server();
 // Логин: запрашивает имя и отправляет его серверу
 void login() {
-    std::cout << "write your name" << std::endl;
-    std::getline(std::cin, name);
-    if (!name.empty()) {
-        write_msgs.push_back(name + "\n");
-        async_write_server(); // Начинаем отправку
+    while (true) {
+        std::cout << "write your name" << std::endl;
+        std::getline(std::cin, name);
+        if (!name.empty()) {
+            write_msgs.push_back(name + "\n");
+            async_write_server(); // Начинаем отправку
+            return;
+        } else {
+            std::cout << "try again" << std::endl;
+        }
     }
 }
 
@@ -34,7 +40,7 @@ void async_read_server() {
                                           std::string message;
                                           std::istream is(&server_buffer);
                                           std::getline(is, message);
-                                          std::cout << "Server: " << message << std::endl;
+                                          std::clog << "Server: " << message << std::endl;
                                           async_read_server(); // Продолжаем читать
                                       } else {
                                           if (error != boost::asio::error::eof && error != boost::asio::error::connection_reset) {
@@ -90,15 +96,14 @@ void async_write_server() {
 }
 
 int main() {
-    set_echo(false); // Отключаем эхо в консоли
+    set_echo(false); // отключаем эхо в консоли
     try {
-        // Разрешаем адрес сервера
         tcp::resolver resolver(io_context);
         auto endpoints = resolver.resolve("127.0.0.1", "12345");
 
         // Синхронное подключение
         boost::asio::connect(sock, endpoints);
-        std::cout << "Connected to server!" << std::endl;
+        std::clog << "Connected to server!" << std::endl;
 
         // Запускаем логин и асинхронные операции
         login();
@@ -107,7 +112,6 @@ int main() {
             async_read_console();
         }
 
-        // Запускаем io_context
         io_context.run();
     } catch (std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
