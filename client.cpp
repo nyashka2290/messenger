@@ -17,7 +17,13 @@ std::deque<std::string> write_msgs; // Очередь для отправки с
 std::string name;
 
 void async_write_server();
-// Логин: запрашивает имя и отправляет его серверу
+void login();
+void async_read_server();
+void async_read_console();
+
+
+
+// регистрация-вход: запрашивает имя и отправляет его серверу
 void login() {
     while (true) {
         std::cout << "write your name" << std::endl;
@@ -105,17 +111,17 @@ int main() {
         boost::asio::connect(sock, endpoints);
         std::clog << "Connected to server!" << std::endl;
 
-        // Запускаем логин и асинхронные операции
+        // вход + отправка сообщений
         login();
+        // чтение от сервера и из консоли
         if (sock.is_open()) {
             async_read_server();
             async_read_console();
         }
-
+        //запуск
         io_context.run();
     } catch (std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
     }
-    set_echo(true); // Восстанавливаем эхо перед выходом
     return 0;
 }
